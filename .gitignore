@@ -4,8 +4,9 @@
 .settings/
 
 # IntelliJ
-.idea
-*.iml
+.idea/workspace.xml
+.idea/task.xml
+.idea/libraries/
 *.iws
 
 # Java

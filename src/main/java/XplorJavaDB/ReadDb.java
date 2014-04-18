@@ -1,29 +1,44 @@
 package XplorJavaDB;
 
 
+import org.joda.time.DateTime;
 import org.postgresql.*;
+import org.skife.jdbi.v2.DBI;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 public class ReadDb {
 
-    public void read() throws SQLException, ClassNotFoundException {
+    private boolean hasRegisteredDriver = false;
 
-
+    public void registerDriver() throws SQLException {
+        if (hasRegisteredDriver) { return; }
         DriverManager.registerDriver(new org.postgresql.Driver());
+    }
 
-//        Connection conn = DriverManager.getConnection(
-//                "Drive=PostgreSQL;uid=lucas.caballero;pwd=livebig6; "
-//                + "Host=localhost; Port=5432; DataBase=xploring_java");
-
+    public Properties getConnectionProperties() {
         Properties props = new Properties();
         props.setProperty("user", "lucas.caballero");
-        props.setProperty("password", "!!Livebig6");
 
+        return props;
+    }
+
+    public String getConnectionUrl() {
         String url = "jdbc:postgresql://localhost:5432/xploring_java";
+        return url;
+    }
 
-        Connection conn = DriverManager.getConnection(url, props);
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(getConnectionUrl(), getConnectionProperties());
+    }
+
+    public void read() throws SQLException, ClassNotFoundException {
+
+        Connection conn = getConnection();
 
         PreparedStatement pstmt = conn.prepareStatement("select id, game_id, user_id, name, state, active from board");
 
@@ -33,5 +48,28 @@ public class ReadDb {
             String s = rs.getString("id");
             System.out.println(s);
         }
+    }
+
+    public void readBoards() throws Exception {
+        DBI dbi = new DBI(getConnectionUrl(), getConnectionProperties());
+        ReadBoards b = dbi.open(ReadBoards.class);
+
+        b.readBoards().stream().forEach(System.out::println);
+
+        b.close();
+    }
+
+    public void insertBoard() {
+        DBI dbi = new DBI(getConnectionUrl(), getConnectionProperties());
+        ReadBoards b = dbi.open(ReadBoards.class);
+
+        b.insert(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "another-me",
+                1,
+                2,
+                new Timestamp(DateTime.now().getMillis()));
     }
 }
