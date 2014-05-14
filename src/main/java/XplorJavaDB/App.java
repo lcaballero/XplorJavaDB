@@ -1,20 +1,20 @@
 package XplorJavaDB;
 
-import com.google.common.base.Joiner;
+import com.google.gson.Gson;
 import com.google.inject.Singleton;
+
+import javax.xml.bind.JAXBException;
 
 
 @Singleton
 public class App {
 
-    private boolean started = false;
-
-    public boolean isStarted() {
-        return this.started;
+    public void start() throws JAXBException {
+        Database db = new XmlIO().read("db/database-classes.xml", Database.class);
     }
 
-    public void start() {
-        started = true;
-        System.out.println(Joiner.on(", ").join("Hello", "World"));
+    private static void dbReading() throws Exception {
+        new ReadDb().insertBoard();
+        new ReadDb().readBoards();
     }
 }

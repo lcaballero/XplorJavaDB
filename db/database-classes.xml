@@ -1,0 +1,6 @@
+<database>
+    <version>1</version>
+    <script><![CDATA[
+create table silly (id int)
+]]></script>
+</database>

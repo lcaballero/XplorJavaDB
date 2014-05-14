@@ -1,6 +1,5 @@
 package XplorJavaDB;
 
-import com.google.common.base.Joiner;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
@@ -13,7 +12,7 @@ import java.util.UUID;
 public interface ReadBoards extends AutoCloseable {
 
     @SqlQuery("select id from board")
-    public List<String> readBoards();
+    public List<String> readIds();
 
     public static final String insert_sql =
         "insert into board" +

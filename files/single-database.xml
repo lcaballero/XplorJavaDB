@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<database>
+    <version>1</version>
+    <script><![CDATA[
+create table silly (id int)
+]]></script>
+</database>

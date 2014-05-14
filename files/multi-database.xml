@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<databases>
+    <database>
+        <version>1</version>
+        <script><![CDATA[
+    create table something (id int)
+    ]]></script>
+    </database>
+    <database>
+        <version>2</version>
+        <script><![CDATA[
+    create table something_else (id int)
+    ]]></script>
+    </database>
+</databases>
