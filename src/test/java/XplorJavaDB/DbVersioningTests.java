@@ -1,6 +1,8 @@
 package XplorJavaDB;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.skife.jdbi.v2.DBI;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +16,81 @@ import static org.junit.Assert.assertThat;
 
 
 public class DbVersioningTests {
+
+    @Test
+    public void after_running_toTargetVersion_the_update_history_table_should_reflect_the_target_as_the_newest_version() {
+        Assert.fail();
+    }
+
+    @Test
+    public void toTargetVersion_should_show_the_test_framework_as_user_for_each_update() {
+        DBI dbi = new DBI(new PGConn());
+        Assert.fail();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void toTargetVersion_should_throw_exception_if_dbi_is_not_provided() {
+        DbVersioning v = new DbVersioning();
+        List<Database> versions = dbVersionRange(0, 10);
+        v.toTargetVersion(versions, 7);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void toTargetVersion_should_throw_exception_if_any_designs_include_null_scripts() {
+        DbVersioning v = new DbVersioning();
+        List<Database> versions = dbVersionRange(0, 10);
+
+        Database db = new Database();
+        db.setVersion(11);
+        db.setScript(null); // <= purposefully setting the test criteria
+
+        versions.add(db);
+
+        v.toTargetVersion(versions, 7);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void toTargetVersion_should_throw_exception_if_any_designs_include_empty_scripts() {
+        DbVersioning v = new DbVersioning();
+        List<Database> versions = dbVersionRange(0, 10);
+
+        Database db = new Database();
+        db.setVersion(11);
+        db.setScript(""); // <= purposefully setting the test criteria
+
+        versions.add(db);
+
+        v.toTargetVersion(versions, 7);
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void toTargetVersion_should_throw_exception_any_scripts_are_duplicates() {
+        DbVersioning v = new DbVersioning();
+        List<Database> versions = dbVersionRange(0, 10);
+
+        Database db = new Database();
+        db.setVersion(11);
+        db.setScript("SELECT 7");  // <= purposefully setting the test criteria
+
+        versions.add(db);
+
+        v.toTargetVersion(versions, 11);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void toTargetVersion_should_throw_exception_exist_duplicate_update_versions() {
+        DbVersioning v = new DbVersioning();
+        List<Database> versions = dbVersionRange(0, 10);
+
+        Database db = new Database();
+        db.setVersion(7);  // <= purposefully setting the test criteria
+        db.setScript("SELECT * from something;");
+
+        versions.add(db);
+
+        v.toTargetVersion(versions, 7);
+    }
 
     @Test
     public void getUsername_should_start_with_default() {
@@ -47,6 +124,7 @@ public class DbVersioningTests {
             .mapToObj((n) -> {
                 Database db = new Database();
                 db.setVersion(n);
+                db.setScript("SELECT " + n);
                 return db;
             })
             .collect(Collectors.toList());
@@ -133,5 +211,41 @@ public class DbVersioningTests {
     public void execute_should_throw_exception_if_script_is_empty() {
         DbVersioning v = new DbVersioning();
         v.execute(0, "");
+    }
+
+    @Test
+    public void addCheck_accepts_function() {
+        IDbDesignCheck c = ((d, v) -> {});
+        DbVersioning a = new DbVersioning();
+
+        // Proves that underlying collection isn't null or at least
+        // that no exceptions are thrown with this simple call.
+        // Follow up tests will determine if the check is called, which
+        // should imply some kind of non-null storage as well.
+        a.addCheck(c);
+
+        assertThat(a.hasChecks(), is(true));
+    }
+
+    @Test
+    public void func_added_to_addCheck_is_ran() {
+        DbVersioning a = new DbVersioning();
+        final boolean[] called = new boolean[] { false };  // stupid 'final' hack
+
+        a.addCheck((d, v) -> called[0] = true);
+        a.runChecks(dbVersionRange(0, 10), 7);
+
+        assertThat(called[0], is(true));
+    }
+
+    @Test
+    public void getVersionsUpdate_() {
+        Assert.fail();
+    }
+
+    @Test
+    public void getScriptProvider_should_provide_non_null_for_default_instance() {
+        DbVersioning v = new DbVersioning();
+        assertThat(v.getScriptProvider(), notNullValue());
     }
 }

@@ -1,0 +1,23 @@
+<scripts>
+
+    <sql>
+        <method>UpdateHistory.createVersionUpdatesTable</method>
+        <code><![CDATA[
+CREATE TABLE IF NOT EXIST version_updates (
+    version int NOT NULL,
+    username text,
+    date_added timestamp without time zone
+);
+        ]]></code>
+    </sql>
+
+    <sql>
+        <method>UpdateHistory.getUpdateHistory</method>
+        <code><![CDATA[
+SELECT version_number, username, date_added
+FROM version_updates
+ORDER BY version_number desc;
+        ]]></code>
+    </sql>
+
+</scripts>

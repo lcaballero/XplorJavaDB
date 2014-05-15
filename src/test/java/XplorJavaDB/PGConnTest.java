@@ -41,7 +41,7 @@ public class PGConnTest {
 
         String sql = Joiner.on(" ").join(
             "SELECT version_number, username, date_added",
-            "FROM version_updates",
+            "FROM version_history",
             "ORDER BY version_number DESC");
 
         Query<Map<String,Object>> q = handle.createQuery(sql);
