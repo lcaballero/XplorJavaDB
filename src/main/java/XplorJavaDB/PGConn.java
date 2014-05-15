@@ -39,4 +39,11 @@ public class PGConn implements ConnectionFactory {
     public Connection openConnection() throws SQLException {
         return DriverManager.getConnection(getConnectionUrl(), getConnectionProperties());
     }
+
+    class Design {
+        public int version;
+        public String script;
+    }
+
+
 }

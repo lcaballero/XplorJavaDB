@@ -9,6 +9,14 @@ public class Database {
     private int version;
     private String script;
 
+    public Database(int version, String script) {
+        this.version = version;
+        this.script = script;
+    }
+
+    public Database() {
+    }
+
     @XmlElement
     public int getVersion() { return version; }
     public void setVersion(int version) { this.version = version; }
