@@ -10,11 +10,6 @@ public class TransitionChecks implements IPreTransitionCheck {
 
     private List<IDbDesignCheck> checks = new ArrayList<>();
 
-    public TransitionChecks(List<IDbDesignCheck> checks) {
-        this();
-        this.checks = checks;
-    }
-
     public TransitionChecks() {
         // Setup checks
         checks.add(this::checkNullDesigns);
@@ -28,7 +23,7 @@ public class TransitionChecks implements IPreTransitionCheck {
     @Override
     public void runChecks(List<Database> designs, int targetVersion) {
         for (IDbDesignCheck check : checks) {
-            check.check(designs, targetVersion);
+            check.confirm(designs, targetVersion);
         }
     }
 
@@ -59,7 +54,7 @@ public class TransitionChecks implements IPreTransitionCheck {
     }
 
     protected void checkAllNonNullScripts(List<Database> designs, int targetVersion) {
-        // check that all designs includes non-null scripts.
+        // confirm that all designs includes non-null scripts.
         List<Database> db = designs
             .stream()
             .filter((d) -> d.getScript() == null || "".equals(d.getScript()))
@@ -71,7 +66,7 @@ public class TransitionChecks implements IPreTransitionCheck {
     }
 
     protected void checkNoDuplicateVersions(List<Database> designs, int targetVersion) {
-        // check for no duplicate versions.
+        // confirm for no duplicate versions.
         Set<Integer> set = designs.stream().map((d) -> d.getVersion()).collect(Collectors.toSet());
 
         if (set.size() != designs.size()) {
@@ -80,7 +75,7 @@ public class TransitionChecks implements IPreTransitionCheck {
     }
 
     protected void checkForDuplicateScripts(List<Database> designs, int targetVersion) {
-        // check for duplicate scripts.
+        // confirm for duplicate scripts.
         Set<String> set = designs.stream().map((d) -> d.getScript().trim()).collect(Collectors.toSet());
 
         if (set.size() != designs.size()) {

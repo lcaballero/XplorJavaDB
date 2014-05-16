@@ -15,7 +15,7 @@ public class TransitionCheckTest extends Helpers {
 
         // Proves that underlying collection isn't null or at least
         // that no exceptions are thrown with this simple call.
-        // Follow up tests will determine if the check is called, which
+        // Follow up tests will determine if the confirm is called, which
         // should imply some kind of non-null storage as well.
         a.addCheck(c);
 

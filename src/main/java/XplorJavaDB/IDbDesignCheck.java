@@ -4,5 +4,5 @@ import java.util.List;
 
 @FunctionalInterface
 public interface IDbDesignCheck {
-    public void check(List<Database> designs, int targetVersion);
+    public void confirm(List<Database> designs, int targetVersion);
 }
