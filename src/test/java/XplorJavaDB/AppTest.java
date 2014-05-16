@@ -27,20 +27,4 @@ public class AppTest
         protected void configure() {
         }
     }
-
-    @Test
-    public void should_create_app_instance() {
-        Injector inject = Guice.createInjector(new ShouldHaveGuice());
-        App app = inject.getInstance(App.class);
-        assertThat(app, notNullValue());
-    }
-
-    @Test
-    public void should_maintain_app_as_singleton() {
-        Injector inject = Guice.createInjector(new ShouldHaveGuice());
-        App app1 = inject.getInstance(App.class);
-        App app2 = inject.getInstance(App.class);
-
-        assertThat(app1, is(app2));
-    }
 }

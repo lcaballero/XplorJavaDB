@@ -1,5 +1,6 @@
 package XplorJavaDB;
 
+import org.postgresql.util.PSQLException;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 
@@ -18,6 +19,7 @@ public class DbVersioning {
     private String username = DEFAULT_USERNAME;
     private List<IDbDesignCheck> checks = new ArrayList<>();
     private VersionScriptProvider scriptProvider = new VersionScriptProvider();
+    private boolean hasCreatedHistoryTable = false;
 
     public DbVersioning(DBI dbi, VersionScriptProvider scriptProvider, String username) {
         this();
@@ -40,11 +42,19 @@ public class DbVersioning {
     public boolean hasChecks() { return this.checks != null && !this.checks.isEmpty(); }
     public VersionScriptProvider getScriptProvider() { return scriptProvider; }
 
-    public List<VersionUpdates> getVersionUpdates() {
+    public List<VersionUpdate> getVersionUpdates() {
         try (Handle handle = dbi.open()) {
             return handle.createQuery(this.scriptProvider.getSelectHistory())
                 .map(new VersionUpdatesMapper())
                 .list();
+        }
+    }
+
+    public void createHistoryTable() {
+        if (hasCreatedHistoryTable) { return; }
+        try (Handle handle = dbi.open()) {
+            handle.execute(this.scriptProvider.getCreateVersionHistoryTable());
+            hasCreatedHistoryTable = true;
         }
     }
 
@@ -54,16 +64,13 @@ public class DbVersioning {
      */
     public int getCurrentVersion() {
 
-        try (Handle handle = dbi.open()) {
+        createHistoryTable();
 
-            handle.execute(this.scriptProvider.getCreateVersionHistoryTable());
+        Optional<VersionUpdate> a = getVersionUpdates()
+            .stream()
+            .findFirst();
 
-            Optional<VersionUpdates> a = getVersionUpdates()
-                .stream()
-                .findFirst();
-
-            return a.isPresent() ? a.get().getVersion() : 0;
-        }
+        return a.isPresent() ? a.get().getVersion() : 0;
     }
 
     /**
@@ -101,8 +108,12 @@ public class DbVersioning {
      * @param username The username of the person who ran the version update.
      */
     public void updateHistory(int version, String username) {
+        createHistoryTable();
         try (Handle handle = dbi.open()) {
-            handle.execute(this.scriptProvider.getInsertHistoryEntry(), version, username);
+            handle.createStatement(this.scriptProvider.getInsertHistoryEntry())
+                .bind("version_number", version)
+                .bind("username", username)
+                .execute();
         }
     }
 

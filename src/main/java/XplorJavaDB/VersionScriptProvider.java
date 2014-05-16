@@ -5,12 +5,12 @@ import com.google.common.base.Joiner;
 public class VersionScriptProvider {
 
     private static final String CREATE_VERSION_HISTORY_TABLE =
-        Joiner.on("").join(
-            "CREATE TABLE IF NOT EXIST %s",
+        Joiner.on(" ").join(
+            "CREATE TABLE IF NOT EXISTS %s",
             "(",
-            "version int NOT NULL,",
-            "username text,",
-            "date_added timestamp without time zone",
+                "version_number int NOT NULL,",
+                "username text,",
+                "date_added timestamp without time zone",
             ");");
 
     private static final String SELECT_HISTORY =
@@ -24,7 +24,7 @@ public class VersionScriptProvider {
             "INSERT INTO %s",
                 "(version_number, username, date_added)",
             "VALUES",
-                "($1, $2, now())");
+                "(:version_number, :username, now());");
 
     public static final String DEFAULT_TABLE_NAME = "version_history";
 

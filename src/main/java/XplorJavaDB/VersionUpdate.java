@@ -2,7 +2,7 @@ package XplorJavaDB;
 
 import java.sql.Timestamp;
 
-public class VersionUpdates {
+public class VersionUpdate implements Comparable<VersionUpdate> {
 
     private int version;
     private String username;
@@ -30,5 +30,10 @@ public class VersionUpdates {
 
     public void setDateAdded(Timestamp dateAdded) {
         this.dateAdded = dateAdded;
+    }
+
+    @Override
+    public int compareTo(VersionUpdate o) {
+        return o.version - this.version;
     }
 }

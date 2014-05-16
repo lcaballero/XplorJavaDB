@@ -3,10 +3,9 @@ package XplorJavaDB;
 import org.junit.Assert;
 import org.junit.Test;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.Handle;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -17,15 +16,85 @@ import static org.junit.Assert.assertThat;
 
 public class DbVersioningTests {
 
+    public String dropScript(String name) {
+        return String.format("DROP TABLE IF EXISTS %s;", name);
+    }
+
+    @Test
+    public void should_be_able_to_insert_into_history() {
+        VersionScriptProvider provider = new VersionScriptProvider();
+        DBI dbi = new DBI(new PGConn());
+
+        try (Handle handle = dbi.open()) {
+            handle.execute(provider.getCreateVersionHistoryTable());
+            handle.createStatement(provider.getInsertHistoryEntry())
+                .bind("version_number", 1)
+                .bind("username", "lucas.caballero")
+                .execute();
+
+            handle.execute(dropScript(provider.getTableName()));
+        }
+    }
+
+    public List<Database> basicDesigns() {
+        List<Database> designs = new ArrayList<>();
+        designs.add(new Database(1, "CREATE TABLE something (id int)"));
+        designs.add(new Database(2, "CREATE TABLE user_profiles (id int, email text)"));
+
+        return designs;
+    }
+
     @Test
     public void after_running_toTargetVersion_the_update_history_table_should_reflect_the_target_as_the_newest_version() {
-        Assert.fail();
+
+        DBI dbi = new DBI(new PGConn());
+        VersionScriptProvider provider = new VersionScriptProvider();
+
+        try (Handle handle = dbi.open()) {
+
+            // Drop history table so that we can insert updates, and make sure the process
+            // initializes the table for further inserts.
+            handle.execute(dropScript(provider.getTableName()));
+
+            List<Database> designs = basicDesigns();
+
+            DbVersioning dbv = new DbVersioning(dbi, provider, "testing-framework");
+            dbv.toTargetVersion(designs, 2);
+
+            List<VersionUpdate> updates = dbv.getVersionUpdates();
+
+            Optional<VersionUpdate> update = updates.stream().sorted().findFirst();
+
+            assertThat(updates.isEmpty(), is(false));
+            assertThat(updates.size(), is(designs.size()));
+
+            Database last = designs.get(designs.size() - 1);
+            assertThat(update.get().getVersion(), is(last.getVersion())); // last
+
+            handle.execute(dropScript(provider.getTableName()));
+            handle.execute(dropScript("something"));
+            handle.execute(dropScript("user_profiles"));
+        }
     }
 
     @Test
     public void toTargetVersion_should_show_the_test_framework_as_user_for_each_update() {
+
         DBI dbi = new DBI(new PGConn());
-        Assert.fail();
+        VersionScriptProvider provider = new VersionScriptProvider();
+
+        List<Database> designs = basicDesigns();
+
+        String username = "test.framework.user";
+        DbVersioning dbv = new DbVersioning(dbi, provider, username);
+        dbv.toTargetVersion(designs, 2);
+
+        List<VersionUpdate> updates = dbv.getVersionUpdates();
+
+        boolean haveUsernames = updates.stream()
+            .allMatch((u) -> u.getUsername().equals(username));
+
+        assertThat(haveUsernames, is(true));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -239,8 +308,53 @@ public class DbVersioningTests {
     }
 
     @Test
-    public void getVersionsUpdate_() {
-        Assert.fail();
+    public void getVersionsUpdate_should_return_empty_list_if_there_no_updates() {
+
+        DBI dbi = new DBI(new PGConn());
+        VersionScriptProvider provider = new VersionScriptProvider();
+
+        try (Handle handle = dbi.open()) {
+
+            handle.execute(dropScript(provider.getTableName()));
+
+            String username = "test.framework.user";
+            DbVersioning dbv = new DbVersioning(dbi, provider, username);
+            dbv.createHistoryTable();
+
+            List<VersionUpdate> history = dbv.getVersionUpdates();
+
+            assertThat(history.isEmpty(), is(true));
+
+            handle.execute(dropScript(provider.getTableName()));
+        }
+    }
+
+    @Test
+    public void getVersionsUpdate_should_return_full_list_of_history_updates() {
+
+        DBI dbi = new DBI(new PGConn());
+        VersionScriptProvider provider = new VersionScriptProvider();
+
+        try (Handle handle = dbi.open()) {
+
+            handle.execute(dropScript(provider.getTableName()));
+
+            int i = 0;
+            String default_user = "default.user";
+            DbVersioning dbv = new DbVersioning(dbi, provider, default_user);
+            dbv.updateHistory(++i, default_user);
+            dbv.updateHistory(++i, default_user);
+            dbv.updateHistory(++i, default_user);
+            dbv.updateHistory(++i, default_user);
+
+            List<VersionUpdate> history = dbv.getVersionUpdates();
+
+            assertThat(history, notNullValue());
+            assertThat(history.isEmpty(), is(false));
+            assertThat(history.size(), is(i));
+
+            handle.execute(dropScript(provider.getTableName()));
+        }
     }
 
     @Test

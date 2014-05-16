@@ -37,23 +37,6 @@ public class PGConnTest {
     }
 
     @Test
-    public void should_find_updates() {
-
-        String sql = Joiner.on(" ").join(
-            "SELECT version_number, username, date_added",
-            "FROM version_history",
-            "ORDER BY version_number DESC");
-
-        Query<Map<String,Object>> q = handle.createQuery(sql);
-
-        Query<VersionUpdates> vq = q.map(new VersionUpdatesMapper());
-        List<VersionUpdates> updates = vq.list();
-
-        assertThat(updates.size(), greaterThan(0));
-        assertThat(updates.get(0).getVersion(), is(10));
-    }
-
-    @Test
     public void should_be_able_to_open_dbi_connection_with_no_issues() {
         Query<Map<String, Object>> q = handle.createQuery("SELECT 1");
         Query<String> q1 = q.map(StringMapper.FIRST);
@@ -75,4 +58,17 @@ public class PGConnTest {
 
         handle.execute("drop table something;");
     }
+
+    @Test
+    public void should_create_the_url_from_the_parts() {
+        PGConn p = new PGConn("jdbc", "postgresql", "localhost", 5432, "xploring_java");
+        assertThat(p.getConnectionUrl(), is(PGConn.DEFAULT_CONNECTION_URL));
+    }
+
+    @Test
+    public void should_have_default_url() {
+        PGConn p = new PGConn();
+        assertThat(p.getConnectionUrl(), is(PGConn.DEFAULT_CONNECTION_URL));
+    }
+
 }
