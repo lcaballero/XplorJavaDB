@@ -2,7 +2,7 @@ package XplorJavaDB;
 
 import com.google.common.base.Joiner;
 
-public class VersionScriptProvider {
+public class VersionScriptProvider implements IScriptProvider {
 
     private static final String CREATE_VERSION_HISTORY_TABLE =
         Joiner.on(" ").join(
@@ -26,8 +26,6 @@ public class VersionScriptProvider {
             "VALUES",
                 "(:version_number, :username, now());");
 
-    public static final String DEFAULT_TABLE_NAME = "version_history";
-
     private String tableName = DEFAULT_TABLE_NAME;
 
     public VersionScriptProvider(String tableName) {
@@ -38,16 +36,20 @@ public class VersionScriptProvider {
         this(DEFAULT_TABLE_NAME);
     }
 
+    @Override
     public String getTableName() { return tableName; }
 
+    @Override
     public String getCreateVersionHistoryTable() {
         return String.format(CREATE_VERSION_HISTORY_TABLE, this.getTableName());
     }
 
+    @Override
     public String getSelectHistory() {
         return String.format(SELECT_HISTORY, this.getTableName());
     }
 
+    @Override
     public String getInsertHistoryEntry() {
         return String.format(INSERT_HISTORY_ENTRY, this.getTableName());
     }

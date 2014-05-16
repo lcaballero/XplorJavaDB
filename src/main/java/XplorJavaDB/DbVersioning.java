@@ -1,13 +1,11 @@
 package XplorJavaDB;
 
-import org.postgresql.util.PSQLException;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -17,30 +15,30 @@ public class DbVersioning {
 
     private DBI dbi = null;
     private String username = DEFAULT_USERNAME;
-    private List<IDbDesignCheck> checks = new ArrayList<>();
-    private VersionScriptProvider scriptProvider = new VersionScriptProvider();
+    private IScriptProvider scriptProvider = new VersionScriptProvider();
     private boolean hasCreatedHistoryTable = false;
+    private IPreTransitionCheck checks;
 
-    public DbVersioning(DBI dbi, VersionScriptProvider scriptProvider, String username) {
+    public DbVersioning(DBI dbi, IScriptProvider scriptProvider, IPreTransitionCheck checks, String username) {
         this();
+
+        if (dbi == null) { throw new IllegalArgumentException("DBI must be non-null"); }
+        if (scriptProvider == null) { throw new IllegalArgumentException("VersionScriptProvider cannot be null"); }
+        if (checks == null) { throw new IllegalArgumentException("IPreTransitionChecks cannot be null"); }
+        if (username == null || username.trim().isEmpty()) { throw new IllegalArgumentException("username cannot be null or empty"); }
+
         this.dbi = dbi;
         this.username = username;
         this.scriptProvider = scriptProvider;
+        this.checks = checks;
     }
 
     public DbVersioning() {
-        checks.add(this::checkNullDesigns);
-        checks.add(this::checkNonNegativeTargetVersion);
-        checks.add(this::checkTargetVersionExists);
-        checks.add(this::checkAllNonNullScripts);
-        checks.add(this::checkNoDuplicateVersions);
-        checks.add(this::checkForDuplicateScripts);
+        this.checks = (checks == null ? new TransitionChecks() : checks);
     }
 
     public String getUsername() { return username; }
-    public boolean addCheck(IDbDesignCheck check) { return checks.add(check); }
-    public boolean hasChecks() { return this.checks != null && !this.checks.isEmpty(); }
-    public VersionScriptProvider getScriptProvider() { return scriptProvider; }
+    public IScriptProvider getScriptProvider() { return scriptProvider; }
 
     public List<VersionUpdate> getVersionUpdates() {
         try (Handle handle = dbi.open()) {
@@ -118,73 +116,6 @@ public class DbVersioning {
     }
 
     /**
-     * Runs the stored checks against the provided design set and targetVersion.
-     * Each design check can possibly throw an exception to fail a given
-     * check.
-     *
-     * @param designs Iterative design applications.
-     * @param targetVersion The design target (or last) design to run in the series.
-     */
-    public void runChecks(List<Database> designs, int targetVersion) {
-        for (IDbDesignCheck check : checks) {
-            check.check(designs, targetVersion);
-        }
-    }
-
-    protected void checkNullDesigns(List<Database> designs, int targetVersion) {
-        if (designs == null || designs.size() <= 0) {
-            throw new IllegalArgumentException("List of Databases cannot be null or empty");
-        }
-    }
-
-    protected void checkNonNegativeTargetVersion(List<Database> designs, int targetVersion) {
-        if (targetVersion < 0) {
-            throw new IllegalArgumentException("Cannot target a negative DB version");
-        }
-    }
-
-    protected void checkTargetVersionExists(List<Database> designs, int targetVersion) {
-        Optional<Database> targetDesign = designs
-            .stream()
-            .filter((d) -> d.getVersion() == targetVersion)
-            .findFirst();
-
-        if (!targetDesign.isPresent()) {
-            throw new IllegalArgumentException("Target version doesn't exist.");
-        }
-    }
-
-    protected void checkAllNonNullScripts(List<Database> designs, int targetVersion) {
-        // check that all designs includes non-null scripts.
-        List<Database> db = designs
-            .stream()
-            .filter((d) -> d.getScript() == null || "".equals(d.getScript()))
-            .collect(Collectors.toList());
-
-        if (!db.isEmpty()) {
-            throw new IllegalArgumentException("Cannot transition based on empty scripts.");
-        }
-    }
-
-    protected void checkNoDuplicateVersions(List<Database> designs, int targetVersion) {
-        // check for no duplicate versions.
-        Set<Integer> set = designs.stream().map((d) -> d.getVersion()).collect(Collectors.toSet());
-
-        if (set.size() != designs.size()) {
-            throw new IllegalArgumentException("There are designs that share the same version number");
-        }
-    }
-
-    protected void checkForDuplicateScripts(List<Database> designs, int targetVersion) {
-        // check for duplicate scripts.
-        Set<String> set = designs.stream().map((d) -> d.getScript().trim()).collect(Collectors.toSet());
-
-        if (set.size() != designs.size()) {
-            throw new IllegalArgumentException("There are designs with duplicate scripts");
-        }
-    }
-
-    /**
      * Updates the DB to the given version based on the list of iterative designs.
      * It walks through the designs one by one, applying them to the DB from the
      * DBs current version up to the targetVersion where each version is one held
@@ -197,7 +128,7 @@ public class DbVersioning {
      */
     public boolean toTargetVersion(List<Database> designs, int targetVersion) {
 
-        runChecks(designs, targetVersion);
+        this.checks.runChecks(designs, targetVersion);
 
         if (dbi == null) {
             throw new IllegalStateException("Cannot transition DB to target version if DBI instance is null");

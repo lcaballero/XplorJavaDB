@@ -1,11 +1,13 @@
 package XplorJavaDB;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -14,10 +16,31 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 
-public class DbVersioningTests {
+public class DbVersioningTests extends Helpers {
 
-    public String dropScript(String name) {
-        return String.format("DROP TABLE IF EXISTS %s;", name);
+    @Test (expected = IllegalArgumentException.class)
+    public void ctor_should_not_accept_null_dbi_instance() {
+        new DbVersioning(null, new VersionScriptProvider(), new TransitionChecks(), "test.user");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void ctor_should_not_accept_null_script_provider_instance() {
+        new DbVersioning(new DBI(new PGConn()), null, new TransitionChecks(), "test.user");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void ctor_should_not_accept_null_checks_instance() {
+        new DbVersioning(new DBI(new PGConn()), new VersionScriptProvider(), null, "test.user");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void ctor_should_not_accept_null_username_instance() {
+        new DbVersioning(new DBI(new PGConn()), new VersionScriptProvider(), new TransitionChecks(), null);
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void ctor_should_not_accept_empty_username_instance() {
+        new DbVersioning(new DBI(new PGConn()), new VersionScriptProvider(), new TransitionChecks(), "  ");
     }
 
     @Test
@@ -36,14 +59,6 @@ public class DbVersioningTests {
         }
     }
 
-    public List<Database> basicDesigns() {
-        List<Database> designs = new ArrayList<>();
-        designs.add(new Database(1, "CREATE TABLE something (id int)"));
-        designs.add(new Database(2, "CREATE TABLE user_profiles (id int, email text)"));
-
-        return designs;
-    }
-
     @Test
     public void after_running_toTargetVersion_the_update_history_table_should_reflect_the_target_as_the_newest_version() {
 
@@ -58,7 +73,7 @@ public class DbVersioningTests {
 
             List<Database> designs = basicDesigns();
 
-            DbVersioning dbv = new DbVersioning(dbi, provider, "testing-framework");
+            DbVersioning dbv = new DbVersioning(dbi, provider, new TransitionChecks(), "testing-framework");
             dbv.toTargetVersion(designs, 2);
 
             List<VersionUpdate> updates = dbv.getVersionUpdates();
@@ -86,7 +101,7 @@ public class DbVersioningTests {
         List<Database> designs = basicDesigns();
 
         String username = "test.framework.user";
-        DbVersioning dbv = new DbVersioning(dbi, provider, username);
+        DbVersioning dbv = new DbVersioning(dbi, provider, new TransitionChecks(), username);
         dbv.toTargetVersion(designs, 2);
 
         List<VersionUpdate> updates = dbv.getVersionUpdates();
@@ -188,17 +203,6 @@ public class DbVersioningTests {
         new DbVersioning().toTargetVersion(list, -1);
     }
 
-    public List<Database> dbVersionRange(int from, int to) {
-        return IntStream.range(from, to)
-            .mapToObj((n) -> {
-                Database db = new Database();
-                db.setVersion(n);
-                db.setScript("SELECT " + n);
-                return db;
-            })
-            .collect(Collectors.toList());
-    }
-
     @Test(expected = IllegalArgumentException.class)
     public void intermediateDesigns_should_throw_exception_if_target_version_less_than_current_version() {
         List<Database> designs = dbVersionRange(0, 10);
@@ -283,31 +287,6 @@ public class DbVersioningTests {
     }
 
     @Test
-    public void addCheck_accepts_function() {
-        IDbDesignCheck c = ((d, v) -> {});
-        DbVersioning a = new DbVersioning();
-
-        // Proves that underlying collection isn't null or at least
-        // that no exceptions are thrown with this simple call.
-        // Follow up tests will determine if the check is called, which
-        // should imply some kind of non-null storage as well.
-        a.addCheck(c);
-
-        assertThat(a.hasChecks(), is(true));
-    }
-
-    @Test
-    public void func_added_to_addCheck_is_ran() {
-        DbVersioning a = new DbVersioning();
-        final boolean[] called = new boolean[] { false };  // stupid 'final' hack
-
-        a.addCheck((d, v) -> called[0] = true);
-        a.runChecks(dbVersionRange(0, 10), 7);
-
-        assertThat(called[0], is(true));
-    }
-
-    @Test
     public void getVersionsUpdate_should_return_empty_list_if_there_no_updates() {
 
         DBI dbi = new DBI(new PGConn());
@@ -318,7 +297,7 @@ public class DbVersioningTests {
             handle.execute(dropScript(provider.getTableName()));
 
             String username = "test.framework.user";
-            DbVersioning dbv = new DbVersioning(dbi, provider, username);
+            DbVersioning dbv = new DbVersioning(dbi, provider, new TransitionChecks(), username);
             dbv.createHistoryTable();
 
             List<VersionUpdate> history = dbv.getVersionUpdates();
@@ -341,7 +320,7 @@ public class DbVersioningTests {
 
             int i = 0;
             String default_user = "default.user";
-            DbVersioning dbv = new DbVersioning(dbi, provider, default_user);
+            DbVersioning dbv = new DbVersioning(dbi, provider, new TransitionChecks(), default_user);
             dbv.updateHistory(++i, default_user);
             dbv.updateHistory(++i, default_user);
             dbv.updateHistory(++i, default_user);
