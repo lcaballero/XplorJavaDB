@@ -1,5 +1,6 @@
 package XplorJavaDB;
 
+import XplorJavaDB.pg.PGConn;
 import org.junit.Test;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;

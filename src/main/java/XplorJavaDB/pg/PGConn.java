@@ -1,4 +1,4 @@
-package XplorJavaDB;
+package XplorJavaDB.pg;
 
 import com.google.common.base.Joiner;
 import org.skife.jdbi.v2.tweak.ConnectionFactory;

@@ -1,6 +1,7 @@
 package XplorJavaDB;
 
 
+import XplorJavaDB.pg.PGConn;
 import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 

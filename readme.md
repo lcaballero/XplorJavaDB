@@ -1,7 +1,7 @@
 # Introduction
 
 In the spirit of TDD this library is intended to help facilitate schema migrations where
-table creation scripts, and alter command are stored in XML and then applied to a
+table creation scripts, and alter commands are stored in XML and then applied to a
 database.
 
 ## Overview
@@ -10,7 +10,8 @@ The mechanics are simple:
 
 __Step 1__
 
-Read database table creations and the like from an XML file that looks something like this:
+Read database scripts from XML.  The script with table creation and alter commands
+looks like this:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -32,9 +33,11 @@ create table something_else (id int);
 
 __Step 2__
 
-Using the list of scripts found in the above file; query the DB to see which version it is
-via a version history table.  Apply to the DB those scripts which cause it to arrive at
-a 'target version' like so:
+The library will query the DB to determine the DB's current version via a version
+history table.  After that it applies the list of scripts found in the above file
+to the DB which cause it to arrive at a 'target version'.
+
+The code using the library to migrate the DB:
 
 ```java
     Databases dbs = new XmlIO().read("sql/db-versions.xml", Databases.class);
